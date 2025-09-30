@@ -9,4 +9,8 @@ app.config.from_object(Config)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+from yacut.api_views import api_bp  # noqa: E402
 from yacut import error_handlers, views  # noqa: F401
+
+
+app.register_blueprint(api_bp)
