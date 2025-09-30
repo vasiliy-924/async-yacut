@@ -9,6 +9,7 @@ from yacut.services import (
     get_unique_short_id,
     upload_files_to_yandex_disk,
 )
+from yacut.constants import HTTP_STATUS_NOT_FOUND
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -21,9 +22,15 @@ def index_view():
         url_map = URLMap(original=form.original_link.data, short=short_id)
         db.session.add(url_map)
         db.session.commit()
-        short_link = url_for('redirect_view', short_id=short_id, _external=True)
+        short_link = url_for(
+            'redirect_view', short_id=short_id, _external=True)
 
-    return render_template('make_link_short.html', form=form, short_link=short_link, active_page='index')
+    return render_template(
+        'make_link_short.html',
+        form=form,
+        short_link=short_link,
+        active_page='index',
+    )
 
 
 @app.route('/files', methods=['GET', 'POST'])
@@ -35,7 +42,9 @@ def files_view():
         files_to_upload = []
         for storage in form.files.data:
             content = storage.read()
-            files_to_upload.append(FileToUpload(filename=storage.filename, content=content))
+            files_to_upload.append(
+                FileToUpload(filename=storage.filename, content=content)
+            )
 
         try:
             uploaded_files = upload_files_to_yandex_disk(
@@ -47,23 +56,35 @@ def files_view():
         else:
             if uploaded_files:
                 for result in uploaded_files:
-                    url_map = URLMap(original=result.original_url, short=result.short_id)
+                    url_map = URLMap(
+                        original=result.original_url,
+                        short=result.short_id,
+                    )
                     db.session.add(url_map)
                 db.session.commit()
-                uploaded_items = [
+                uploaded_items = tuple(
                     {
                         'filename': result.filename,
-                        'link': url_for('redirect_view', short_id=result.short_id, _external=True),
+                        'link': url_for(
+                            'redirect_view',
+                            short_id=result.short_id,
+                            _external=True,
+                        ),
                     }
                     for result in uploaded_files
-                ]
+                )
 
-    return render_template('load_foles.html', form=form, uploaded_items=uploaded_items, active_page='files')
+    return render_template(
+        'load_foles.html',
+        form=form,
+        uploaded_items=uploaded_items,
+        active_page='files',
+    )
 
 
 @app.route('/<string:short_id>')
 def redirect_view(short_id):
     url_map = URLMap.query.filter_by(short=short_id).first()
     if url_map is None:
-        abort(404)
+        abort(HTTP_STATUS_NOT_FOUND)
     return redirect(url_map.original)

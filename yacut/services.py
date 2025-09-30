@@ -13,14 +13,15 @@ from yacut.constants import (
     DEFAULT_SHORT_LENGTH,
     MAX_GENERATION_ATTEMPTS,
     RESERVED_SHORT_IDS,
+    YANDEX_API_BASE_URL,
+    YANDEX_DOWNLOAD_ENDPOINT,
+    YANDEX_OVERWRITE_PARAM_NAME,
+    YANDEX_OVERWRITE_PARAM_VALUE,
+    YANDEX_PATH_PARAM,
+    YANDEX_UPLOAD_ENDPOINT,
+    YANDEX_UPLOAD_ROOT,
 )
 from yacut.models import URLMap
-
-
-YANDEX_API_BASE_URL = 'https://cloud-api.yandex.net'
-YANDEX_UPLOAD_ENDPOINT = '/v1/disk/resources/upload'
-YANDEX_DOWNLOAD_ENDPOINT = '/v1/disk/resources/download'
-YANDEX_UPLOAD_ROOT = 'app:/yacut'
 
 
 class YandexDiskServiceError(Exception):
@@ -81,8 +82,15 @@ def _build_disk_path(short_id: str, filename: str) -> str:
     return f'{YANDEX_UPLOAD_ROOT}_{short_id}_{safe_name}'
 
 
-async def _request_upload_link(session: aiohttp.ClientSession, token: str, path: str) -> str:
-    params = {'path': path, 'overwrite': 'true'}
+async def _request_upload_link(
+    session: aiohttp.ClientSession,
+    token: str,
+    path: str,
+) -> str:
+    params = {
+        YANDEX_PATH_PARAM: path,
+        YANDEX_OVERWRITE_PARAM_NAME: YANDEX_OVERWRITE_PARAM_VALUE,
+    }
     headers = {'Authorization': f'OAuth {token}'}
     async with session.get(
         f'{YANDEX_API_BASE_URL}{YANDEX_UPLOAD_ENDPOINT}',
@@ -93,17 +101,27 @@ async def _request_upload_link(session: aiohttp.ClientSession, token: str, path:
         data = await response.json()
     href = data.get('href')
     if not href:
-        raise YandexDiskServiceError('Сервис Яндекс Диска не вернул ссылку для загрузки файла.')
+        raise YandexDiskServiceError(
+            'Сервис Яндекс Диска не вернул ссылку для загрузки файла.'
+        )
     return href
 
 
-async def _upload_file_content(session: aiohttp.ClientSession, href: str, content: bytes) -> None:
+async def _upload_file_content(
+    session: aiohttp.ClientSession,
+    href: str,
+    content: bytes,
+) -> None:
     async with session.put(href, data=content) as response:
         await _raise_for_status(response)
 
 
-async def _request_download_link(session: aiohttp.ClientSession, token: str, path: str) -> str:
-    params = {'path': path}
+async def _request_download_link(
+    session: aiohttp.ClientSession,
+    token: str,
+    path: str,
+) -> str:
+    params = {YANDEX_PATH_PARAM: path}
     headers = {'Authorization': f'OAuth {token}'}
     async with session.get(
         f'{YANDEX_API_BASE_URL}{YANDEX_DOWNLOAD_ENDPOINT}',
@@ -114,7 +132,9 @@ async def _request_download_link(session: aiohttp.ClientSession, token: str, pat
         data = await response.json()
     href = data.get('href')
     if not href:
-        raise YandexDiskServiceError('Сервис Яндекс Диска не вернул ссылку для скачивания файла.')
+        raise YandexDiskServiceError(
+            'Сервис Яндекс Диска не вернул ссылку для скачивания файла.'
+        )
     return href
 
 
@@ -128,10 +148,17 @@ async def _upload_single_file(
     upload_href = await _request_upload_link(session, token, path)
     await _upload_file_content(session, upload_href, file.content)
     download_href = await _request_download_link(session, token, path)
-    return UploadedFile(filename=file.filename, short_id=short_id, original_url=download_href)
+    return UploadedFile(
+        filename=file.filename,
+        short_id=short_id,
+        original_url=download_href,
+    )
 
 
-async def _upload_files_async(files: List[FileToUpload], token: str) -> List[UploadedFile]:
+async def _upload_files_async(
+    files: List[FileToUpload],
+    token: str,
+) -> List[UploadedFile]:
     async with aiohttp.ClientSession() as session:
         results: List[UploadedFile] = []
         for file in files:
@@ -154,4 +181,5 @@ def upload_files_to_yandex_disk(
     except YandexDiskServiceError:
         raise
     except (ClientError, asyncio.TimeoutError) as exc:
-        raise YandexDiskServiceError('Ошибка при обращении к API Яндекс Диска.') from exc
+        raise YandexDiskServiceError(
+            'Ошибка при обращении к API Яндекс Диска.') from exc

@@ -9,25 +9,25 @@ from wtforms.validators import (
     ValidationError
 )
 
-
+from yacut.constants import MAX_SHORT_ID_LENGTH, MAX_URL_LENGTH
 from yacut.validators import validate_unique_short_id
 
 
 class URLMapForm(FlaskForm):
     original_link = URLField(
         'Длинная ссылка',
-        validators=[
+        validators=(
             DataRequired(message='Обязательное поле'),
             URL(message='Введите корректный URL'),
-            Length(max=2048),
-        ]
+            Length(max=MAX_URL_LENGTH),
+        )
     )
     custom_id = StringField(
         'Ваш вариант короткой ссылки',
-        validators=[
+        validators=(
             Optional(),
-            Length(1, 16)
-        ]
+            Length(1, MAX_SHORT_ID_LENGTH)
+        )
     )
     submit = SubmitField('Создать')
 
@@ -41,7 +41,7 @@ class URLMapForm(FlaskForm):
 
 class UploadFilesForm(FlaskForm):
     files = MultipleFileField(
-        validators=[FileRequired(message='Выберите хотя бы один файл')]
+        validators=(FileRequired(message='Выберите хотя бы один файл'),)
     )
     submit = SubmitField('Загрузить')
 

@@ -30,7 +30,10 @@ def validate_unique_short_id(value, *, require, check_unique):
             raise ValidationError(INVALID_SHORT_ID_MSG)
         return None
 
-    if len(trimmed) < MIN_SHORT_ID_LENGTH or len(trimmed) > MAX_SHORT_ID_LENGTH:
+    if (
+        len(trimmed) < MIN_SHORT_ID_LENGTH
+        or len(trimmed) > MAX_SHORT_ID_LENGTH
+    ):
         raise ValidationError(INVALID_SHORT_ID_MSG)
 
     if trimmed in RESERVED_SHORT_IDS:
@@ -39,7 +42,10 @@ def validate_unique_short_id(value, *, require, check_unique):
     if not _ALLOWED_PATTERN.fullmatch(trimmed):
         raise ValidationError(INVALID_SHORT_ID_MSG)
 
-    if check_unique and URLMap.query.filter_by(short=trimmed).first() is not None:
+    if (
+        check_unique
+        and URLMap.query.filter_by(short=trimmed).first() is not None
+    ):
         raise ValidationError(DUPLICATE_SHORT_ID_MSG)
 
     return trimmed
