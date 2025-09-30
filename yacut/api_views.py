@@ -15,11 +15,11 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 @api_bp.post('/id/')
 def create_short_link():
-    data = request.get_json()
-    if data is None:
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
         return jsonify({'message': 'Отсутствует тело запроса'}), HTTPStatus.BAD_REQUEST
 
-    url = data.get('url') if isinstance(data, dict) else None
+    url = data.get('url')
     if not url:
         return jsonify({'message': '"url" является обязательным полем!'}), HTTPStatus.BAD_REQUEST
 
