@@ -10,3 +10,4 @@ MAX_SHORT_ID_LENGTH = 16
 RESERVED_SHORT_IDS = frozenset({'files'})
 INVALID_SHORT_ID_MSG = 'Указано недопустимое имя для короткой ссылки'
 DUPLICATE_SHORT_ID_MSG = 'Предложенный вариант короткой ссылки уже существует.'
+MAX_GENERATION_ATTEMPTS = 1000

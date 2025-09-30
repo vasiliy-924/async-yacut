@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}YaCut — внутренняя ошибка{% endblock %}
+
+{% block content %}
+  <section class="container my-5 px-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-6 text-center">
+        <h1 class="my-4">500</h1>
+        <p class="lead">{{ message or 'Внутренняя ошибка сервера.' }}</p>
+        <a class="btn btn-primary" href="{{ url_for('index_view') }}">Вернуться на главную</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+

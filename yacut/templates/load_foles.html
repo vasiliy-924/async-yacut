@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}YaCut — загрузка файлов{% endblock %}
+
+{% block content %}
+  <section class="container my-5 px-4">
+    <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
+    <p class="text-center my-4">
+      Загрузите несколько файлов и получите ссылки для скачивания
+    </p>
+
+    <div class="container">
+      <div class="row my-3">
+        <div class="col-sm"></div>
+        <div class="col-sm">
+          <form method="post" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            <div>
+              <div>
+                {{ form.files(class_='form-control form-control-lg py-2 mb-3', multiple=True) }}
+                {% if form.files.errors %}
+                  <p><span style="color:red">{{ form.files.errors[0] }}</span></p>
+                {% else %}
+                  <p><span style="color:red">&nbsp;</span></p>
+                {% endif %}
+              </div>
+
+              {{ form.submit(class_='btn btn-primary') }}
+            </div>
+          </form>
+        </div>
+        <div class="col-sm"></div>
+      </div>
+    </div>
+
+    {% if uploaded_items %}
+      <div class="container">
+        <div class="row">
+          <div class="col">
+            <h5 class="text-center">Загруженные файлы</h5>
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th scope="col">Файл</th>
+                    <th scope="col">Ссылка</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in uploaded_items %}
+                    <tr>
+                      <td>{{ item.filename }}</td>
+                      <td><a href="{{ item.link }}">{{ item.link }}</a></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </section>
+{% endblock %}
+
