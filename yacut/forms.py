@@ -19,13 +19,17 @@ class URLMapForm(FlaskForm):
         'Ваш вариант короткой ссылки',
         validators=[
             Optional(),
-            Length(1, 64)
+            Length(1, 16)
         ]
     )
     submit = SubmitField('Создать')
 
     def validate_custom_id(self, field: StringField) -> None:
-        field.data = validate_unique_short_id(field.data)
+        field.data = validate_unique_short_id(
+            field.data,
+            require=False,
+            check_unique=True,
+        )
 
 
 class UploadFilesForm(FlaskForm):
