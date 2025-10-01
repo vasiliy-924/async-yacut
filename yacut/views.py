@@ -1,4 +1,4 @@
-from flask import abort, current_app, redirect, render_template, url_for
+from flask import abort, current_app, flash, redirect, render_template, url_for
 
 from yacut import app, db
 from yacut.forms import UploadFilesForm, URLMapForm
@@ -24,9 +24,14 @@ def index_view():
         db.session.commit()
         short_link = url_for(
             'redirect_view', short_id=short_id, _external=True)
+        flash('Короткая ссылка успешно создана!', 'success')
+    elif form.is_submitted():
+        for errors in form.errors.values():
+            for message in errors:
+                flash(message, 'danger')
 
     return render_template(
-        'make_link_short.html',
+        'index.html',
         form=form,
         short_link=short_link,
         active_page='index',
@@ -52,7 +57,9 @@ def files_view():
                 token=current_app.config.get('DISK_TOKEN'),
             )
         except YandexDiskServiceError as error:
-            form.files.errors.append(str(error))
+            message = str(error)
+            form.files.errors.append(message)
+            flash(message, 'danger')
         else:
             if uploaded_files:
                 for result in uploaded_files:
@@ -73,9 +80,14 @@ def files_view():
                     }
                     for result in uploaded_files
                 )
+                flash('Файлы успешно загружены на Яндекс Диск.', 'success')
+    elif form.is_submitted():
+        for errors in form.errors.values():
+            for message in errors:
+                flash(message, 'danger')
 
     return render_template(
-        'load_foles.html',
+        'load_files.html',
         form=form,
         uploaded_items=uploaded_items,
         active_page='files',

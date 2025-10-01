@@ -36,6 +36,15 @@
               {{ form.submit(class_='btn btn-primary') }}
             </div>
           </form>
+          <p class="py-3 mb-3">
+            {% with messages = get_flashed_messages(with_categories=True) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <span class="text-{{ 'danger' if category == 'danger' else category }}">{{ message }}</span>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+          </p>
         </div>
         <div class="col-sm"></div>
       </div>
