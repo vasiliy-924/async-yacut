@@ -38,11 +38,11 @@ paths:
                     message: "Предложенный вариант короткой ссылки уже существует."
           description: Not found
       summary: Create Id
-  /api/id/{short_id}/:
+  /api/id/{short}/:
     get:
       parameters:
         - in: path
-          name: short_id
+          name: short
           schema:
             type: string
           required: true
@@ -82,7 +82,7 @@ components:
       properties:
         url:
           type: string
-        short_link:
+        short_url:
           type: string
       type: object
       description: Генерация новой ссылки
@@ -90,7 +90,7 @@ components:
       properties:
         url:
           type: string
-        custom_id:
+        short:
           type: string
       type: object
       required:

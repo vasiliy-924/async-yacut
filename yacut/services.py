@@ -1,18 +1,11 @@
 import asyncio
-import secrets
 from dataclasses import dataclass
 from typing import Iterable, List
 
 import aiohttp
 from aiohttp import ClientError
-from sqlalchemy import select
 
-from yacut import db
 from yacut.constants import (
-    ALPHABET,
-    DEFAULT_SHORT_LENGTH,
-    MAX_GENERATION_ATTEMPTS,
-    RESERVED_SHORT_IDS,
     YANDEX_API_BASE_URL,
     YANDEX_DOWNLOAD_ENDPOINT,
     YANDEX_OVERWRITE_PARAM_NAME,
@@ -37,23 +30,8 @@ class FileToUpload:
 @dataclass
 class UploadedFile:
     filename: str
-    short_id: str
+    short: str
     original_url: str
-
-
-def get_unique_short_id(length=DEFAULT_SHORT_LENGTH):
-    attempts = 0
-    while attempts < MAX_GENERATION_ATTEMPTS:
-        candidate = ''.join(secrets.choice(ALPHABET) for _ in range(length))
-        if candidate in RESERVED_SHORT_IDS:
-            attempts += 1
-            continue
-        if not db.session.execute(
-            select(URLMap.id).filter_by(short=candidate)
-        ).scalar():
-            return candidate
-        attempts += 1
-    raise RuntimeError('Не удалось сгенерировать уникальный идентификатор')
 
 
 async def _raise_for_status(response):
@@ -77,9 +55,9 @@ def _sanitize_filename(filename: str) -> str:
     return filename.replace('/', '_').replace('\\', '_')
 
 
-def _build_disk_path(short_id: str, filename: str) -> str:
+def _build_disk_path(short: str, filename: str) -> str:
     safe_name = _sanitize_filename(filename)
-    return f'{YANDEX_UPLOAD_ROOT}_{short_id}_{safe_name}'
+    return f'{YANDEX_UPLOAD_ROOT}_{short}_{safe_name}'
 
 
 async def _request_upload_link(
@@ -143,14 +121,14 @@ async def _upload_single_file(
     token: str,
     file: FileToUpload,
 ) -> UploadedFile:
-    short_id = get_unique_short_id()
-    path = _build_disk_path(short_id, file.filename)
+    short = URLMap.get_unique_short()
+    path = _build_disk_path(short, file.filename)
     upload_href = await _request_upload_link(session, token, path)
     await _upload_file_content(session, upload_href, file.content)
     download_href = await _request_download_link(session, token, path)
     return UploadedFile(
         filename=file.filename,
-        short_id=short_id,
+        short=short,
         original_url=download_href,
     )
 

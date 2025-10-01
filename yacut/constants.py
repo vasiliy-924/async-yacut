@@ -1,20 +1,25 @@
+import re
 import string
 
 # Generator
-ALPHABET = string.ascii_letters + string.digits
+SHORT_CHARS = string.ascii_letters + string.digits
+ALLOWED_SHORT_PATTERN = re.compile(
+    rf'^[{re.escape(SHORT_CHARS)}]+$'
+)
 DEFAULT_SHORT_LENGTH = 6
-MIN_SHORT_ID_LENGTH = 1
-MAX_SHORT_ID_LENGTH = 16
-RESERVED_SHORT_IDS = frozenset({'files'})
-INVALID_SHORT_ID_MSG = 'Указано недопустимое имя для короткой ссылки'
-DUPLICATE_SHORT_ID_MSG = 'Предложенный вариант короткой ссылки уже существует.'
+MAX_SHORT_LENGTH = 16
+RESERVED_SHORTS = frozenset({'files'})
 MAX_GENERATION_ATTEMPTS = 1000
 MAX_URL_LENGTH = 2048
-HTTP_STATUS_OK = 200
-HTTP_STATUS_CREATED = 201
-HTTP_STATUS_BAD_REQUEST = 400
-HTTP_STATUS_NOT_FOUND = 404
-HTTP_STATUS_INTERNAL_ERROR = 500
+
+# File upload
+ALLOWED_EXTENSIONS = {
+    'txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp',
+    'zip', 'rar', '7z', 'tar', 'gz',
+    'mp3', 'mp4', 'avi', 'mkv', 'mov',
+    'json', 'xml', 'csv', 'html', 'css', 'js', 'py',
+}
 
 # Yandex Disk API
 YANDEX_API_BASE_URL = 'https://cloud-api.yandex.net'

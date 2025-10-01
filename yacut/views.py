@@ -1,4 +1,6 @@
-from flask import abort, current_app, flash, redirect, render_template, url_for
+from http import HTTPStatus
+
+from flask import abort, current_app, flash, redirect, render_template
 
 from yacut import app, db
 from yacut.forms import UploadFilesForm, URLMapForm
@@ -6,24 +8,19 @@ from yacut.models import URLMap
 from yacut.services import (
     FileToUpload,
     YandexDiskServiceError,
-    get_unique_short_id,
     upload_files_to_yandex_disk,
 )
-from yacut.constants import HTTP_STATUS_NOT_FOUND
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index_view():
     form = URLMapForm()
-    short_link = None
+    short_url = None
 
     if form.validate_on_submit():
-        short_id = form.custom_id.data or get_unique_short_id()
-        url_map = URLMap(original=form.original_link.data, short=short_id)
-        db.session.add(url_map)
-        db.session.commit()
-        short_link = url_for(
-            'redirect_view', short_id=short_id, _external=True)
+        short = form.short.data or URLMap.get_unique_short()
+        url_map = URLMap.create(form.original_link.data, short)
+        short_url = url_map.get_short_url()
         flash('Короткая ссылка успешно создана!', 'success')
     elif form.is_submitted():
         for errors in form.errors.values():
@@ -33,7 +30,7 @@ def index_view():
     return render_template(
         'index.html',
         form=form,
-        short_link=short_link,
+        short_url=short_url,
         active_page='index',
     )
 
@@ -62,23 +59,21 @@ def files_view():
             flash(message, 'danger')
         else:
             if uploaded_files:
-                for result in uploaded_files:
-                    url_map = URLMap(
-                        original=result.original_url,
-                        short=result.short_id,
+                url_maps = [
+                    URLMap.create(
+                        result.original_url,
+                        result.short,
+                        commit=False
                     )
-                    db.session.add(url_map)
+                    for result in uploaded_files
+                ]
                 db.session.commit()
                 uploaded_items = tuple(
                     {
                         'filename': result.filename,
-                        'link': url_for(
-                            'redirect_view',
-                            short_id=result.short_id,
-                            _external=True,
-                        ),
+                        'link': url_map.get_short_url(),
                     }
-                    for result in uploaded_files
+                    for result, url_map in zip(uploaded_files, url_maps)
                 )
                 flash('Файлы успешно загружены на Яндекс Диск.', 'success')
     elif form.is_submitted():
@@ -94,9 +89,9 @@ def files_view():
     )
 
 
-@app.route('/<string:short_id>')
-def redirect_view(short_id):
-    url_map = URLMap.query.filter_by(short=short_id).first()
+@app.route('/<string:short>')
+def redirect_view(short):
+    url_map = URLMap.find_by_short(short)
     if url_map is None:
-        abort(HTTP_STATUS_NOT_FOUND)
+        abort(HTTPStatus.NOT_FOUND)
     return redirect(url_map.original)
