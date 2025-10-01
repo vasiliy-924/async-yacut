@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import Iterable, List
 
 import aiohttp
@@ -15,6 +16,18 @@ from yacut.constants import (
     YANDEX_UPLOAD_ROOT,
 )
 from yacut.models import URLMap
+
+
+# Сообщения об ошибках
+YANDEX_API_ERROR = 'Ошибка обращения к API Яндекс Диска ({status}): {detail}'
+UPLOAD_LINK_ERROR = (
+    'Сервис Яндекс Диска не вернул ссылку для загрузки файла.'
+)
+DOWNLOAD_LINK_ERROR = (
+    'Сервис Яндекс Диска не вернул ссылку для скачивания файла.'
+)
+TOKEN_MISSING_ERROR = 'Не задан токен доступа к Яндекс Диску.'
+API_REQUEST_ERROR = 'Ошибка при обращении к API Яндекс Диска.'
 
 
 class YandexDiskServiceError(Exception):
@@ -35,7 +48,7 @@ class UploadedFile:
 
 
 async def _raise_for_status(response):
-    if response.status < 400:
+    if response.status < HTTPStatus.BAD_REQUEST:
         return
     detail: str = ''
     try:
@@ -47,7 +60,7 @@ async def _raise_for_status(response):
     elif isinstance(payload, str):
         detail = payload
     raise YandexDiskServiceError(
-        f'Ошибка обращения к API Яндекс Диска ({response.status}): {detail}'
+        YANDEX_API_ERROR.format(status=response.status, detail=detail)
     )
 
 
@@ -79,9 +92,7 @@ async def _request_upload_link(
         data = await response.json()
     href = data.get('href')
     if not href:
-        raise YandexDiskServiceError(
-            'Сервис Яндекс Диска не вернул ссылку для загрузки файла.'
-        )
+        raise YandexDiskServiceError(UPLOAD_LINK_ERROR)
     return href
 
 
@@ -110,9 +121,7 @@ async def _request_download_link(
         data = await response.json()
     href = data.get('href')
     if not href:
-        raise YandexDiskServiceError(
-            'Сервис Яндекс Диска не вернул ссылку для скачивания файла.'
-        )
+        raise YandexDiskServiceError(DOWNLOAD_LINK_ERROR)
     return href
 
 
@@ -144,6 +153,14 @@ async def _upload_files_async(
         return results
 
 
+def prepare_files_for_upload(file_storages):
+    """Преобразует FileStorage объекты в FileToUpload."""
+    return (
+        FileToUpload(filename=storage.filename, content=storage.read())
+        for storage in file_storages
+    )
+
+
 def upload_files_to_yandex_disk(
     files: Iterable[FileToUpload],
     *,
@@ -153,11 +170,10 @@ def upload_files_to_yandex_disk(
     if not file_list:
         return []
     if not token:
-        raise YandexDiskServiceError('Не задан токен доступа к Яндекс Диску.')
+        raise YandexDiskServiceError(TOKEN_MISSING_ERROR)
     try:
         return asyncio.run(_upload_files_async(file_list, token))
     except YandexDiskServiceError:
         raise
     except (ClientError, asyncio.TimeoutError) as exc:
-        raise YandexDiskServiceError(
-            'Ошибка при обращении к API Яндекс Диска.') from exc
+        raise YandexDiskServiceError(API_REQUEST_ERROR) from exc

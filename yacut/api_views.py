@@ -4,8 +4,16 @@ from flask import Blueprint, jsonify, request
 from wtforms import ValidationError
 
 from yacut.error_handlers import APIError
-from yacut.models import DUPLICATE_SHORT, INVALID_SHORT, URLMap
+from yacut.models import INVALID_SHORT, URLMap
 
+# Сообщения об ошибках API
+MSG_NO_REQUEST_BODY = 'Отсутствует тело запроса'
+MSG_URL_REQUIRED = '"url" является обязательным полем!'
+MSG_ID_NOT_FOUND = 'Указанный id не найден'
+
+# Ключи JSON-ответов
+JSON_KEY_URL = 'url'
+JSON_KEY_SHORT_LINK = 'short_link'
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -14,21 +22,18 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 def create_short_link():
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        raise APIError('Отсутствует тело запроса')
+        raise APIError(MSG_NO_REQUEST_BODY)
 
-    url = data.get('url')
+    if JSON_KEY_URL not in data:
+        raise APIError(MSG_URL_REQUIRED)
+    url = data[JSON_KEY_URL]
     if not url:
-        raise APIError('"url" является обязательным полем!')
+        raise APIError(MSG_URL_REQUIRED)
 
     # Поддержка обоих форматов для обратной совместимости
-    short_input = (
-        data.get('short') or data.get('custom_id')
-        if isinstance(data, dict) else None
-    )
-
     try:
         short = URLMap.validate_short(
-            short_input,
+            data.get('short') or data.get('custom_id'),
             require=False,
             check_unique=True,
         )
@@ -39,16 +44,12 @@ def create_short_link():
     if not short:
         short = URLMap.get_unique_short()
 
-    try:
-        url_map = URLMap.create(url, short)
-    except Exception as exc:
-        raise APIError(DUPLICATE_SHORT) from exc
+    url_map = URLMap.create(url, short)
 
-    short_url = url_map.get_short_url()
+    short_link = url_map.get_short_url()
     return jsonify({
-        'url': url,
-        'short_url': short_url,
-        'short_link': short_url  # Для обратной совместимости
+        JSON_KEY_URL: url,
+        JSON_KEY_SHORT_LINK: short_link
     }), HTTPStatus.CREATED
 
 
@@ -56,5 +57,5 @@ def create_short_link():
 def get_original_link(short):
     url_map = URLMap.find_by_short(short)
     if url_map is None:
-        raise APIError('Указанный id не найден', HTTPStatus.NOT_FOUND)
-    return jsonify({'url': url_map.original}), HTTPStatus.OK
+        raise APIError(MSG_ID_NOT_FOUND, HTTPStatus.NOT_FOUND)
+    return jsonify({JSON_KEY_URL: url_map.original}), HTTPStatus.OK

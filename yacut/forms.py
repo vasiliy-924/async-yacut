@@ -32,7 +32,7 @@ class URLMapForm(FlaskForm):
             Length(max=MAX_URL_LENGTH),
         )
     )
-    short = StringField(
+    custom_id = StringField(
         'Ваш вариант короткой ссылки',
         validators=(
             Optional(),
@@ -42,7 +42,7 @@ class URLMapForm(FlaskForm):
     )
     submit = SubmitField(SUBMIT_CREATE)
 
-    def validate_short(self, field: StringField) -> None:
+    def validate_custom_id(self, field: StringField) -> None:
         field.data = URLMap.validate_short(
             field.data,
             require=False,
