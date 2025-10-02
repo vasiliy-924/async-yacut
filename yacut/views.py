@@ -44,7 +44,7 @@ def index_view():
             active_page=PAGE_INDEX,
         )
 
-    url_map = URLMap.create(form.original_link.data, form.custom_id.data)
+    url_map = URLMap.create(form.original_link.data, form.custom_id.data or None)
     flash(SHORT_LINK_CREATED, FLASH_SUCCESS)
 
     return render_template(
@@ -68,23 +68,10 @@ def files_view():
             active_page=PAGE_FILES,
         )
 
-    # Часть 1: Преобразование набора файлов в FileToUpload
-    # (вынесено в services)
-    try:
-        files_to_upload = prepare_files_for_upload(form.files.data)
-    except Exception:
-        flash(FILE_READ_ERROR, FLASH_DANGER)
-        return render_template(
-            TEMPLATE_FILES,
-            form=form,
-            uploaded_items=uploaded_items,
-            active_page=PAGE_FILES,
-        )
-
-    # Часть 2: Загрузка файлов на Яндекс Диск и получение урлов
+    # Часть 1-2: Преобразование файлов и загрузка на Яндекс Диск
     try:
         uploaded_files = upload_files_to_yandex_disk(
-            files_to_upload,
+            prepare_files_for_upload(form.files.data),
             token=current_app.config.get('DISK_TOKEN'),
         )
     except YandexDiskServiceError as error:
@@ -98,19 +85,14 @@ def files_view():
 
     # Часть 3: Преобразование урлов в URLMap через list comprehension
     if uploaded_files:
-        url_maps = [
-            URLMap.create(result.original_url, result.short, commit=False, validate=False)
-            for result in uploaded_files
-        ]
-        db.session.commit()
-
-        uploaded_items = [
-            {
+        uploaded_items = []
+        for result in uploaded_files:
+            url_map = URLMap.create(result.original_url, result.short or None, commit=False)
+            uploaded_items.append({
                 'filename': result.filename,
                 'link': url_map.short_url,
-            }
-            for result, url_map in zip(uploaded_files, url_maps)
-        ]
+            })
+        db.session.commit()
         flash(FILES_UPLOADED, FLASH_SUCCESS)
 
     return render_template(

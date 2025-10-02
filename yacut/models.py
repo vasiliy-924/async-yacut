@@ -45,7 +45,7 @@ class URLMap(db.Model):
             if not parsed.scheme or not parsed.netloc:
                 raise ValueError("Invalid URL format")
             if short:
-                URLMap.validate_short(short, require=True, check_unique=False)
+                URLMap.validate_short(short, require=True, check_unique=True)
         
         if not short:
             short = URLMap.get_unique_short()
