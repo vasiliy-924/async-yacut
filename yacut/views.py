@@ -1,6 +1,8 @@
 from http import HTTPStatus
+import os
+import yaml
 
-from flask import abort, current_app, flash, redirect, render_template
+from flask import abort, current_app, flash, redirect, render_template, jsonify
 
 from yacut import app, db
 from yacut.forms import UploadFilesForm, URLMapForm
@@ -129,3 +131,23 @@ def redirect_view(short):
     if url_map is None:
         abort(HTTPStatus.NOT_FOUND)
     return redirect(url_map.original)
+
+
+@app.route('/docs/')
+def swagger_ui():
+    """Отображение Swagger UI документации"""
+    return render_template('swagger.html')
+
+
+@app.route('/openapi.json')
+def openapi_json():
+    """Отдача OpenAPI спецификации в формате JSON"""
+    try:
+        # Путь к файлу openapi.yml
+        spec_path = os.path.join(current_app.root_path, 'openapi.yml')
+        with open(spec_path, 'r', encoding='utf-8') as f:
+            spec = yaml.safe_load(f)
+        return jsonify(spec)
+    except Exception as e:
+        current_app.logger.error(f"Ошибка загрузки OpenAPI спецификации: {e}")
+        return jsonify({"error": "Не удалось загрузить спецификацию"}), 500

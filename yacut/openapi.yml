@@ -1,3 +1,4 @@
+openapi: 3.0.3
 info:
   title: Проект YaCut
   version: 0.1.0
@@ -64,7 +65,6 @@ paths:
                     message: Указанный id не найден
           description: Not found
       summary: Get Url
-openapi: 3.0.3
 components:
   schemas:
     Error:
