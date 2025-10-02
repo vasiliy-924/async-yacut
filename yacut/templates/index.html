@@ -18,19 +18,12 @@
             <div>
               <div>
                 {{ form.original_link(class_='form-control form-control-lg py-2 mb-3', id='form-title', placeholder='Длинная ссылка') }}
-                {% if form.original_link.errors %}
-                  <p><span style="color:red">{{ form.original_link.errors[0] }}</span></p>
-                {% else %}
-                  <p><span style="color:red">&nbsp;</span></p>
-                {% endif %}
+                <p><span style="color:red">{{ form.original_link.errors[0] }}</span></p>
               </div>
               <div>
                 {{ form.custom_id(class_='form-control form-control-lg py-2 mb-3', id='form-link', placeholder='Ваш вариант короткой ссылки') }}
-                {% if form.custom_id.errors %}
-                  <p><span style="color:red">{{ form.custom_id.errors[0] }}</span></p>
-                {% else %}
-                  <p><span style="color:red">&nbsp;</span></p>
-                {% endif %}
+                <br>
+                <p><span style="color:red">{{ form.custom_id.errors[0] }}</span></p>
               </div>
 
               {{ form.submit(class_='btn btn-primary') }}
@@ -38,11 +31,9 @@
           </form>
           <p class="py-3 mb-3">
             {% with messages = get_flashed_messages(with_categories=True) %}
-              {% if messages %}
-                {% for category, message in messages %}
-                  <span class="text-{{ 'danger' if category == 'danger' else category }}">{{ message }}</span>
-                {% endfor %}
-              {% endif %}
+              {% for category, message in messages %}
+                <span class="text-{{ 'danger' if category == 'danger' else category }}">{{ message }}</span>
+              {% endfor %}
             {% endwith %}
           </p>
         </div>

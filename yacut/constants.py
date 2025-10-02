@@ -9,16 +9,15 @@ ALLOWED_SHORT_PATTERN = re.compile(
 DEFAULT_SHORT_LENGTH = 6
 MAX_SHORT_LENGTH = 16
 RESERVED_SHORTS = frozenset({'files'})
-MAX_GENERATION_ATTEMPTS = 1000
+MAX_GENERATION_ATTEMPTS = 100
 MAX_URL_LENGTH = 2048
+
+# Views
+REDIRECT_VIEW_NAME = 'redirect_view'
 
 # File upload
 ALLOWED_EXTENSIONS = {
-    'txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
     'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp',
-    'zip', 'rar', '7z', 'tar', 'gz',
-    'mp3', 'mp4', 'avi', 'mkv', 'mov',
-    'json', 'xml', 'csv', 'html', 'css', 'js', 'py',
 }
 
 # Yandex Disk API

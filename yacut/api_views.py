@@ -41,12 +41,9 @@ def create_short_link():
         message = error.args[0] if error.args else INVALID_SHORT
         raise APIError(message) from error
 
-    if not short:
-        short = URLMap.get_unique_short()
-
     url_map = URLMap.create(url, short)
 
-    short_link = url_map.get_short_url()
+    short_link = url_map.short_url
     return jsonify({
         JSON_KEY_URL: url,
         JSON_KEY_SHORT_LINK: short_link
@@ -55,7 +52,7 @@ def create_short_link():
 
 @api_bp.get('/id/<string:short>/')
 def get_original_link(short):
-    url_map = URLMap.find_by_short(short)
+    url_map = URLMap.find(short)
     if url_map is None:
         raise APIError(MSG_ID_NOT_FOUND, HTTPStatus.NOT_FOUND)
     return jsonify({JSON_KEY_URL: url_map.original}), HTTPStatus.OK

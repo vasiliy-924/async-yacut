@@ -1,5 +1,6 @@
-import secrets
+import random
 from datetime import datetime
+from urllib.parse import urlparse
 
 from flask import url_for
 from sqlalchemy import select
@@ -12,6 +13,7 @@ from yacut.constants import (
     MAX_GENERATION_ATTEMPTS,
     MAX_SHORT_LENGTH,
     MAX_URL_LENGTH,
+    REDIRECT_VIEW_NAME,
     RESERVED_SHORTS,
     SHORT_CHARS,
 )
@@ -19,7 +21,7 @@ from yacut.constants import (
 INVALID_SHORT = 'Указано недопустимое имя для короткой ссылки'
 DUPLICATE_SHORT = 'Предложенный вариант короткой ссылки уже существует.'
 UNIQUE_SHORT_GENERATION_ERROR = (
-    'Не удалось сгенерировать уникальный идентификатор'
+    'Не удалось сгенерировать уникальный идентификатор за {attempts} попыток'
 )
 
 
@@ -35,45 +37,47 @@ class URLMap(db.Model):
     )
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
-    @classmethod
-    def create(cls, original: str, short: str, *, commit: bool = True):
+    @staticmethod
+    def create(original: str, short: str = None, *, commit: bool = True, validate: bool = True):
         """Создает новую запись URL-маппинга."""
-        url_map = cls(original=original, short=short)
+        if validate:
+            parsed = urlparse(original)
+            if not parsed.scheme or not parsed.netloc:
+                raise ValueError("Invalid URL format")
+            if short:
+                URLMap.validate_short(short, require=True, check_unique=False)
+        
+        if not short:
+            short = URLMap.get_unique_short()
+        
+        url_map = URLMap(original=original, short=short)
         db.session.add(url_map)
         if commit:
             db.session.commit()
+
+        url_map.short_url = url_map.get_short_url()
         return url_map
 
-    @classmethod
-    def find_by_short(cls, short: str):
+    @staticmethod
+    def find(short: str):
         """Находит запись по короткому идентификатору."""
         return db.session.execute(
-            select(cls).filter_by(short=short)
+            select(URLMap).filter_by(short=short)
         ).scalar_one_or_none()
 
-    @classmethod
-    def short_exists(cls, short: str) -> bool:
-        """Проверяет существование короткого идентификатора."""
-        return db.session.execute(
-            select(cls.id).filter_by(short=short)
-        ).scalar() is not None
-
-    @classmethod
-    def get_unique_short(cls) -> str:
+    @staticmethod
+    def get_unique_short() -> str:
         """Генерирует уникальный короткий идентификатор."""
-        for _ in range(MAX_GENERATION_ATTEMPTS):
-            candidate = ''.join(
-                secrets.choice(SHORT_CHARS)
-                for _ in range(DEFAULT_SHORT_LENGTH)
-            )
+        for attempt in range(MAX_GENERATION_ATTEMPTS):
+            candidate = ''.join(random.choices(SHORT_CHARS, k=DEFAULT_SHORT_LENGTH))
             if candidate in RESERVED_SHORTS:
                 continue
-            if not cls.short_exists(candidate):
+            if not URLMap.find(candidate):
                 return candidate
-        raise RuntimeError(UNIQUE_SHORT_GENERATION_ERROR)
+        raise RuntimeError(UNIQUE_SHORT_GENERATION_ERROR.format(attempts=MAX_GENERATION_ATTEMPTS))
 
-    @classmethod
-    def validate_short(cls, value, *, require=False, check_unique=False):
+    @staticmethod
+    def validate_short(value, *, require=False, check_unique=False):
         """Валидация короткого идентификатора."""
         if value is None:
             if require:
@@ -95,20 +99,12 @@ class URLMap(db.Model):
         if not ALLOWED_SHORT_PATTERN.fullmatch(trimmed):
             raise ValidationError(INVALID_SHORT)
 
-        if check_unique and cls.short_exists(trimmed):
+        if check_unique and URLMap.find(trimmed):
             raise ValidationError(DUPLICATE_SHORT)
 
         return trimmed
 
     def get_short_url(self) -> str:
         """Возвращает полный короткий URL."""
-        return url_for('redirect_view', short=self.short, _external=True)
+        return url_for(REDIRECT_VIEW_NAME, short=self.short, _external=True)
 
-    def to_dict(self):
-        """Возвращает словарь с данными маппинга."""
-        return dict(
-            id=self.id,
-            original=self.original,
-            short=self.short,
-            timestamp=self.timestamp
-        )

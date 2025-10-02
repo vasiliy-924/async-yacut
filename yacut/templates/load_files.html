@@ -18,11 +18,8 @@
             <div>
               <div>
                 {{ form.files(class_='form-control form-control-lg py-2 mb-3', multiple=True) }}
-                {% if form.files.errors %}
-                  <p><span style="color:red">{{ form.files.errors[0] }}</span></p>
-                {% else %}
-                  <p><span style="color:red">&nbsp;</span></p>
-                {% endif %}
+                <p><span style="color:red">{{ form.files.errors[0] }}</span></p>
+                <p><span style="color:red">&nbsp;</span></p>
               </div>
 
               {{ form.submit(class_='btn btn-primary') }}
@@ -30,11 +27,9 @@
           </form>
           <p class="py-3 mb-3">
             {% with messages = get_flashed_messages(with_categories=True) %}
-              {% if messages %}
-                {% for category, message in messages %}
-                  <span class="text-{{ 'danger' if category == 'danger' else category }}">{{ message }}</span>
-                {% endfor %}
-              {% endif %}
+              {% for category, message in messages %}
+                <span class="text-{{ 'danger' if category == 'danger' else category }}">{{ message }}</span>
+              {% endfor %}
             {% endwith %}
           </p>
         </div>
