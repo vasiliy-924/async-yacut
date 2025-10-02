@@ -44,7 +44,10 @@ def index_view():
             active_page=PAGE_INDEX,
         )
 
-    url_map = URLMap.create(form.original_link.data, form.custom_id.data or None)
+    url_map = URLMap.create(
+        form.original_link.data,
+        form.custom_id.data or None
+    )
     flash(SHORT_LINK_CREATED, FLASH_SUCCESS)
 
     return render_template(
@@ -87,7 +90,11 @@ def files_view():
     if uploaded_files:
         uploaded_items = []
         for result in uploaded_files:
-            url_map = URLMap.create(result.original_url, result.short or None, commit=False)
+            url_map = URLMap.create(
+                result.original_url,
+                result.short or None,
+                commit=False
+            )
             uploaded_items.append({
                 'filename': result.filename,
                 'link': url_map.short_url,

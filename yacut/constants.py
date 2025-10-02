@@ -16,9 +16,7 @@ MAX_URL_LENGTH = 2048
 REDIRECT_VIEW_NAME = 'redirect_view'
 
 # File upload
-ALLOWED_EXTENSIONS = {
-    'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp',
-}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', }
 
 # Yandex Disk API
 YANDEX_API_BASE_URL = 'https://cloud-api.yandex.net'

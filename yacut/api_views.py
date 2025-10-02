@@ -12,7 +12,6 @@ URL_REQUIRED = '"url" является обязательным полем!'
 ID_NOT_FOUND = 'Указанный id не найден'
 
 # Ключи JSON-ответов
-
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 

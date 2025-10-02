@@ -38,7 +38,13 @@ class URLMap(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     @staticmethod
-    def create(original: str, short: str = None, *, commit: bool = True, validate: bool = True):
+    def create(
+        original: str,
+        short: str = None,
+        *,
+        commit: bool = True,
+        validate: bool = True
+    ):
         """Создает новую запись URL-маппинга."""
         if validate:
             parsed = urlparse(original)
@@ -46,10 +52,10 @@ class URLMap(db.Model):
                 raise ValueError("Invalid URL format")
             if short:
                 URLMap.validate_short(short, require=True, check_unique=True)
-        
+
         if not short:
             short = URLMap.get_unique_short()
-        
+
         url_map = URLMap(original=original, short=short)
         db.session.add(url_map)
         if commit:
@@ -69,12 +75,17 @@ class URLMap(db.Model):
     def get_unique_short() -> str:
         """Генерирует уникальный короткий идентификатор."""
         for attempt in range(MAX_GENERATION_ATTEMPTS):
-            candidate = ''.join(random.choices(SHORT_CHARS, k=DEFAULT_SHORT_LENGTH))
+            candidate = ''.join(
+                random.choices(SHORT_CHARS, k=DEFAULT_SHORT_LENGTH)
+            )
             if candidate in RESERVED_SHORTS:
                 continue
             if not URLMap.find(candidate):
                 return candidate
-        raise RuntimeError(UNIQUE_SHORT_GENERATION_ERROR.format(attempts=MAX_GENERATION_ATTEMPTS))
+        raise RuntimeError(
+            UNIQUE_SHORT_GENERATION_ERROR
+            .format(attempts=MAX_GENERATION_ATTEMPTS)
+        )
 
     @staticmethod
     def validate_short(value, *, require=False, check_unique=False):
@@ -107,4 +118,3 @@ class URLMap(db.Model):
     def get_short_url(self) -> str:
         """Возвращает полный короткий URL."""
         return url_for(REDIRECT_VIEW_NAME, short=self.short, _external=True)
-
