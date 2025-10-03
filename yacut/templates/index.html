@@ -18,12 +18,16 @@
             <div>
               <div>
                 {{ form.original_link(class_='form-control form-control-lg py-2 mb-3', id='form-title', placeholder='Длинная ссылка') }}
-                <p><span style="color:red">{{ form.original_link.errors[0] }}</span></p>
+                {% for error in form.original_link.errors %}
+                  <p><span style="color:red">{{ error }}</span></p>
+                {% endfor %}
               </div>
               <div>
                 {{ form.custom_id(class_='form-control form-control-lg py-2 mb-3', id='form-link', placeholder='Ваш вариант короткой ссылки') }}
                 <br>
-                <p><span style="color:red">{{ form.custom_id.errors[0] }}</span></p>
+                {% for error in form.custom_id.errors %}
+                  <p><span style="color:red">{{ error }}</span></p>
+                {% endfor %}
               </div>
 
               {{ form.submit(class_='btn btn-primary') }}

@@ -44,16 +44,13 @@ def index_view():
             active_page=PAGE_INDEX,
         )
 
-    url_map = URLMap.create(
-        form.original_link.data,
-        form.custom_id.data or None
-    )
-    flash(SHORT_LINK_CREATED, FLASH_SUCCESS)
-
     return render_template(
         TEMPLATE_INDEX,
         form=form,
-        short_url=url_map.short_url,
+        short_url=URLMap.create(
+            form.original_link.data,
+            form.custom_id.data or None
+        ).get_short_url(),
         active_page=PAGE_INDEX,
     )
 
@@ -61,13 +58,11 @@ def index_view():
 @app.route('/files', methods=['GET', 'POST'])
 def files_view():
     form = UploadFilesForm()
-    uploaded_items = []
 
     if not form.validate_on_submit():
         return render_template(
             TEMPLATE_FILES,
             form=form,
-            uploaded_items=uploaded_items,
             active_page=PAGE_FILES,
         )
 
@@ -75,37 +70,33 @@ def files_view():
     try:
         uploaded_files = upload_files_to_yandex_disk(
             prepare_files_for_upload(form.files.data),
-            token=current_app.config.get('DISK_TOKEN'),
         )
     except YandexDiskServiceError as error:
         flash(str(error), FLASH_DANGER)
         return render_template(
             TEMPLATE_FILES,
             form=form,
-            uploaded_items=uploaded_items,
             active_page=PAGE_FILES,
         )
 
     # Часть 3: Преобразование урлов в URLMap через list comprehension
-    if uploaded_files:
-        uploaded_items = []
-        for result in uploaded_files:
-            url_map = URLMap.create(
-                result.original_url,
-                result.short or None,
-                commit=False
-            )
-            uploaded_items.append({
-                'filename': result.filename,
-                'link': url_map.short_url,
-            })
-        db.session.commit()
-        flash(FILES_UPLOADED, FLASH_SUCCESS)
+
+    db.session.commit()
 
     return render_template(
         TEMPLATE_FILES,
         form=form,
-        uploaded_items=uploaded_items,
+        uploaded_items=[
+            {
+                'filename': result.filename,
+                'link': URLMap.create(
+                    result.original_url,
+                    result.short or None,
+                    commit=False
+                ).get_short_url(),
+            }
+            for result in uploaded_files
+        ],
         active_page=PAGE_FILES,
     )
 
@@ -126,11 +117,7 @@ def swagger_ui():
 @app.route('/openapi.json')
 def openapi_json():
     """Отдача OpenAPI спецификации в формате JSON"""
-    try:
-        spec_path = os.path.join(current_app.root_path, 'openapi.yml')
-        with open(spec_path, 'r', encoding='utf-8') as f:
-            spec = yaml.safe_load(f)
-        return jsonify(spec)
-    except Exception as e:
-        current_app.logger.error(f"Ошибка загрузки OpenAPI спецификации: {e}")
-        return jsonify({"error": "Не удалось загрузить спецификацию"}), 500
+    spec_path = os.path.join(current_app.root_path, 'openapi.yml')
+    with open(spec_path, 'r', encoding='utf-8') as f:
+        spec = yaml.safe_load(f)
+    return jsonify(spec)

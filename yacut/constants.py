@@ -22,7 +22,3 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', }
 YANDEX_API_BASE_URL = 'https://cloud-api.yandex.net'
 YANDEX_UPLOAD_ENDPOINT = '/v1/disk/resources/upload'
 YANDEX_DOWNLOAD_ENDPOINT = '/v1/disk/resources/download'
-YANDEX_UPLOAD_ROOT = 'app:/yacut'
-YANDEX_OVERWRITE_PARAM_VALUE = 'true'
-YANDEX_PATH_PARAM = 'path'
-YANDEX_OVERWRITE_PARAM_NAME = 'overwrite'

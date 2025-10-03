@@ -21,7 +21,8 @@ from yacut.constants import (
 INVALID_SHORT = 'Указано недопустимое имя для короткой ссылки'
 DUPLICATE_SHORT = 'Предложенный вариант короткой ссылки уже существует.'
 UNIQUE_SHORT_GENERATION_ERROR = (
-    'Не удалось сгенерировать уникальный идентификатор за {attempts} попыток'
+    f'Не удалось сгенерировать уникальный идентификатор '
+    f'за {MAX_GENERATION_ATTEMPTS} попыток'
 )
 
 
@@ -61,7 +62,6 @@ class URLMap(db.Model):
         if commit:
             db.session.commit()
 
-        url_map.short_url = url_map.get_short_url()
         return url_map
 
     @staticmethod
@@ -78,28 +78,19 @@ class URLMap(db.Model):
             candidate = ''.join(
                 random.choices(SHORT_CHARS, k=DEFAULT_SHORT_LENGTH)
             )
-            if candidate in RESERVED_SHORTS:
-                continue
-            if not URLMap.find(candidate):
+            if candidate not in RESERVED_SHORTS and not URLMap.find(candidate):
                 return candidate
-        raise RuntimeError(
-            UNIQUE_SHORT_GENERATION_ERROR
-            .format(attempts=MAX_GENERATION_ATTEMPTS)
-        )
+        raise RuntimeError(UNIQUE_SHORT_GENERATION_ERROR)
 
     @staticmethod
     def validate_short(value, *, require=False, check_unique=False):
         """Валидация короткого идентификатора."""
-        if value is None:
+        if value is None or not value or not value.strip():
             if require:
                 raise ValidationError(INVALID_SHORT)
-            return None
+            return value
 
         trimmed = value.strip()
-        if not trimmed:
-            if require:
-                raise ValidationError(INVALID_SHORT)
-            return None
 
         if len(trimmed) > MAX_SHORT_LENGTH:
             raise ValidationError(INVALID_SHORT)

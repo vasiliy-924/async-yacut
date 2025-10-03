@@ -9,11 +9,7 @@ from aiohttp import ClientError
 from yacut.constants import (
     YANDEX_API_BASE_URL,
     YANDEX_DOWNLOAD_ENDPOINT,
-    YANDEX_OVERWRITE_PARAM_NAME,
-    YANDEX_OVERWRITE_PARAM_VALUE,
-    YANDEX_PATH_PARAM,
     YANDEX_UPLOAD_ENDPOINT,
-    YANDEX_UPLOAD_ROOT,
 )
 from yacut.models import URLMap
 
@@ -70,7 +66,7 @@ def _sanitize_filename(filename: str) -> str:
 
 def _build_disk_path(short: str, filename: str) -> str:
     safe_name = _sanitize_filename(filename)
-    return f'{YANDEX_UPLOAD_ROOT}_{short}_{safe_name}'
+    return f'app:/yacut_{short}_{safe_name}'
 
 
 async def _request_upload_link(
@@ -79,8 +75,8 @@ async def _request_upload_link(
     path: str,
 ) -> str:
     params = {
-        YANDEX_PATH_PARAM: path,
-        YANDEX_OVERWRITE_PARAM_NAME: YANDEX_OVERWRITE_PARAM_VALUE,
+        'path': path,
+        'overwrite': 'true',
     }
     headers = {'Authorization': f'OAuth {token}'}
     async with session.get(
@@ -110,7 +106,7 @@ async def _request_download_link(
     token: str,
     path: str,
 ) -> str:
-    params = {YANDEX_PATH_PARAM: path}
+    params = {'path': path}
     headers = {'Authorization': f'OAuth {token}'}
     async with session.get(
         f'{YANDEX_API_BASE_URL}{YANDEX_DOWNLOAD_ENDPOINT}',
