@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 from wtforms import ValidationError
 
 from yacut.error_handlers import APIError
-from yacut.models import INVALID_SHORT, URLMap
+from yacut.models import URLMap
 
 # Сообщения об ошибках API
 NO_REQUEST_BODY = 'Отсутствует тело запроса'
@@ -16,7 +16,7 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 
 @api_bp.post('/id/')
-def create_short_link():
+def create_url_mapping():
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         raise APIError(NO_REQUEST_BODY)
@@ -28,15 +28,14 @@ def create_short_link():
         raise APIError(URL_REQUIRED)
 
     try:
-        url_map = URLMap.create(url, data.get('custom_id'))
+        return jsonify({
+            'url': url,
+            'short_link': URLMap.create(
+                url, data.get('custom_id')
+            ).get_short_url()
+        }), HTTPStatus.CREATED
     except ValidationError as error:
-        message = error.args[0] if error.args else INVALID_SHORT
-        raise APIError(message) from error
-
-    return jsonify({
-        'url': url,
-        'short_link': url_map.short_url
-    }), HTTPStatus.CREATED
+        raise APIError(str(error)) from error
 
 
 @api_bp.get('/id/<string:short>/')

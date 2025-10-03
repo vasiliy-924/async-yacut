@@ -5,6 +5,7 @@ from typing import Iterable, List
 
 import aiohttp
 from aiohttp import ClientError
+from flask import current_app
 
 from yacut.constants import (
     YANDEX_API_BASE_URL,
@@ -66,7 +67,7 @@ def _sanitize_filename(filename: str) -> str:
 
 def _build_disk_path(short: str, filename: str) -> str:
     safe_name = _sanitize_filename(filename)
-    return f'app:/yacut_{short}_{safe_name}'
+    return f'app:/yacut_{short}_{safe_name}'  # noqa: E231
 
 
 async def _request_upload_link(
@@ -159,9 +160,8 @@ def prepare_files_for_upload(file_storages):
 
 def upload_files_to_yandex_disk(
     files: Iterable[FileToUpload],
-    *,
-    token: str,
 ) -> List[UploadedFile]:
+    token = current_app.config.get('DISK_TOKEN')
     file_list = list(files)
     if not file_list:
         return []
