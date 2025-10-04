@@ -29,6 +29,7 @@ FLASH_SUCCESS = 'success'
 SHORT_LINK_CREATED = 'Короткая ссылка успешно создана!'
 FILES_UPLOADED = 'Файлы успешно загружены на Яндекс Диск.'
 FILE_READ_ERROR = 'Ошибка при чтении файлов.'
+SHORT_LINKS_CREATION_ERROR = 'Ошибка при создании коротких ссылок'
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -44,13 +45,25 @@ def index_view():
             active_page=PAGE_INDEX,
         )
 
+    try:
+        short_url = URLMap.create(
+            form.original_link.data,
+            form.custom_id.data,
+            validate=False
+        ).get_short_url()
+    except Exception:
+        flash(SHORT_LINKS_CREATION_ERROR, FLASH_DANGER)
+        return render_template(
+            TEMPLATE_INDEX,
+            form=form,
+            short_url=None,
+            active_page=PAGE_INDEX,
+        )
+
     return render_template(
         TEMPLATE_INDEX,
         form=form,
-        short_url=URLMap.create(
-            form.original_link.data,
-            form.custom_id.data or None
-        ).get_short_url(),
+        short_url=short_url,
         active_page=PAGE_INDEX,
     )
 
@@ -80,23 +93,34 @@ def files_view():
         )
 
     # Часть 3: Преобразование урлов в URLMap через list comprehension
-
-    db.session.commit()
-
-    return render_template(
-        TEMPLATE_FILES,
-        form=form,
-        uploaded_items=[
+    try:
+        uploaded_items = (
             {
                 'filename': result.filename,
                 'link': URLMap.create(
                     result.original_url,
-                    result.short or None,
-                    commit=False
+                    result.short,
+                    commit=False,
+                    validate=False
                 ).get_short_url(),
             }
             for result in uploaded_files
-        ],
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        flash(SHORT_LINKS_CREATION_ERROR, FLASH_DANGER)
+
+        return render_template(
+            TEMPLATE_FILES,
+            form=form,
+            active_page=PAGE_FILES
+        )
+
+    return render_template(
+        TEMPLATE_FILES,
+        form=form,
+        uploaded_items=uploaded_items,
         active_page=PAGE_FILES,
     )
 

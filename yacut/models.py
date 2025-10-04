@@ -48,6 +48,8 @@ class URLMap(db.Model):
     ):
         """Создает новую запись URL-маппинга."""
         if validate:
+            if len(original) > MAX_URL_LENGTH:
+                raise ValueError("URL too long")
             parsed = urlparse(original)
             if not parsed.scheme or not parsed.netloc:
                 raise ValueError("Invalid URL format")
