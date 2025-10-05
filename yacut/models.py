@@ -20,6 +20,8 @@ from yacut.constants import (
 
 INVALID_SHORT = 'Указано недопустимое имя для короткой ссылки'
 DUPLICATE_SHORT = 'Предложенный вариант короткой ссылки уже существует.'
+URL_TOO_LONG = 'URL слишком длинный'
+INVALID_URL_FORMAT = 'Недопустимый формат URL'
 UNIQUE_SHORT_GENERATION_ERROR = (
     f'Не удалось сгенерировать уникальный идентификатор '
     f'за {MAX_GENERATION_ATTEMPTS} попыток'
@@ -49,10 +51,10 @@ class URLMap(db.Model):
         """Создает новую запись URL-маппинга."""
         if validate:
             if len(original) > MAX_URL_LENGTH:
-                raise ValueError("URL too long")
+                raise ValueError(URL_TOO_LONG)
             parsed = urlparse(original)
             if not parsed.scheme or not parsed.netloc:
-                raise ValueError("Invalid URL format")
+                raise ValueError(INVALID_URL_FORMAT)
             if short:
                 URLMap.validate_short(short, require=True, check_unique=True)
 

@@ -1,8 +1,9 @@
-from http import HTTPStatus
 import os
 import yaml
+from http import HTTPStatus
 
-from flask import abort, current_app, flash, redirect, render_template, jsonify
+from flask import abort, current_app, flash, jsonify, redirect, render_template
+from wtforms import ValidationError
 
 from yacut import app, db
 from yacut.forms import UploadFilesForm, URLMapForm
@@ -35,37 +36,32 @@ SHORT_LINKS_CREATION_ERROR = 'Ошибка при создании коротк�
 @app.route('/', methods=['GET', 'POST'])
 def index_view():
     form = URLMapForm()
-    short_url = None
 
     if not form.validate():
         return render_template(
             TEMPLATE_INDEX,
             form=form,
-            short_url=short_url,
             active_page=PAGE_INDEX,
         )
 
     try:
-        short_url = URLMap.create(
-            form.original_link.data,
-            form.custom_id.data,
-            validate=False
-        ).get_short_url()
-    except Exception:
-        flash(SHORT_LINKS_CREATION_ERROR, FLASH_DANGER)
         return render_template(
             TEMPLATE_INDEX,
             form=form,
-            short_url=None,
+            short_url=URLMap.create(
+                form.original_link.data,
+                form.custom_id.data,
+                validate=False
+            ).get_short_url(),
             active_page=PAGE_INDEX,
         )
-
-    return render_template(
-        TEMPLATE_INDEX,
-        form=form,
-        short_url=short_url,
-        active_page=PAGE_INDEX,
-    )
+    except (ValueError, ValidationError, RuntimeError) as e:
+        flash(f"{SHORT_LINKS_CREATION_ERROR}: {str(e)}", FLASH_DANGER)
+        return render_template(
+            TEMPLATE_INDEX,
+            form=form,
+            active_page=PAGE_INDEX,
+        )
 
 
 @app.route('/files', methods=['GET', 'POST'])
@@ -94,35 +90,32 @@ def files_view():
 
     # Часть 3: Преобразование урлов в URLMap через list comprehension
     try:
-        uploaded_items = (
-            {
-                'filename': result.filename,
-                'link': URLMap.create(
-                    result.original_url,
-                    result.short,
-                    commit=False,
-                    validate=False
-                ).get_short_url(),
-            }
-            for result in uploaded_files
-        )
         db.session.commit()
-    except Exception:
+        return render_template(
+            TEMPLATE_FILES,
+            form=form,
+            uploaded_items=(
+                {
+                    'filename': result.filename,
+                    'link': URLMap.create(
+                        result.original_url,
+                        result.short,
+                        commit=False,
+                        validate=False
+                    ).get_short_url(),
+                }
+                for result in uploaded_files
+            ),
+            active_page=PAGE_FILES,
+        )
+    except (ValueError, ValidationError, RuntimeError) as e:
         db.session.rollback()
-        flash(SHORT_LINKS_CREATION_ERROR, FLASH_DANGER)
-
+        flash(f"{SHORT_LINKS_CREATION_ERROR}: {str(e)}", FLASH_DANGER)
         return render_template(
             TEMPLATE_FILES,
             form=form,
             active_page=PAGE_FILES
         )
-
-    return render_template(
-        TEMPLATE_FILES,
-        form=form,
-        uploaded_items=uploaded_items,
-        active_page=PAGE_FILES,
-    )
 
 
 @app.route('/<string:short>')
