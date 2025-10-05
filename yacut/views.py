@@ -1,3 +1,4 @@
+import contextlib
 import os
 import yaml
 from http import HTTPStatus
@@ -31,6 +32,13 @@ SHORT_LINK_CREATED = 'Короткая ссылка успешно создан�
 FILES_UPLOADED = 'Файлы успешно загружены на Яндекс Диск.'
 FILE_READ_ERROR = 'Ошибка при чтении файлов.'
 SHORT_LINKS_CREATION_ERROR = 'Ошибка при создании коротких ссылок'
+SHORT_LINKS_CREATION_ERROR_WITH_DETAILS = '{}: {}'
+
+
+@contextlib.contextmanager
+def commit_after_return():
+    yield
+    db.session.commit()
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -56,7 +64,11 @@ def index_view():
             active_page=PAGE_INDEX,
         )
     except (ValueError, ValidationError, RuntimeError) as e:
-        flash(f"{SHORT_LINKS_CREATION_ERROR}: {str(e)}", FLASH_DANGER)
+        flash(SHORT_LINKS_CREATION_ERROR_WITH_DETAILS.format(
+            SHORT_LINKS_CREATION_ERROR,
+            str(e)),
+            FLASH_DANGER
+        )
         return render_template(
             TEMPLATE_INDEX,
             form=form,
@@ -90,27 +102,31 @@ def files_view():
 
     # Часть 3: Преобразование урлов в URLMap через list comprehension
     try:
-        db.session.commit()
-        return render_template(
-            TEMPLATE_FILES,
-            form=form,
-            uploaded_items=(
-                {
-                    'filename': result.filename,
-                    'link': URLMap.create(
-                        result.original_url,
-                        result.short,
-                        commit=False,
-                        validate=False
-                    ).get_short_url(),
-                }
-                for result in uploaded_files
-            ),
-            active_page=PAGE_FILES,
-        )
+        with commit_after_return():
+            return render_template(
+                TEMPLATE_FILES,
+                form=form,
+                uploaded_items=(
+                    {
+                        'filename': result.filename,
+                        'link': URLMap.create(
+                            result.original_url,
+                            result.short,
+                            commit=False,
+                            validate=False
+                        ).get_short_url(),
+                    }
+                    for result in uploaded_files
+                ),
+                active_page=PAGE_FILES,
+            )
     except (ValueError, ValidationError, RuntimeError) as e:
         db.session.rollback()
-        flash(f"{SHORT_LINKS_CREATION_ERROR}: {str(e)}", FLASH_DANGER)
+        flash(SHORT_LINKS_CREATION_ERROR_WITH_DETAILS.format(
+            SHORT_LINKS_CREATION_ERROR,
+            str(e)),
+            FLASH_DANGER
+        )
         return render_template(
             TEMPLATE_FILES,
             form=form,
